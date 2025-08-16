@@ -1,0 +1,63 @@
+-- Create Departments table
+CREATE TABLE Departments (
+    department_id INT PRIMARY KEY,
+    dept_name VARCHAR(50) NOT NULL
+);
+
+-- Create Employees table
+CREATE TABLE Employees (
+    emp_id INT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES Departments(department_id)
+);
+
+-- Create Sales table
+CREATE TABLE Sales (
+    sale_id INT PRIMARY KEY,
+    emp_id INT,
+    sale_date DATE,
+    amount DECIMAL(10,2),
+    FOREIGN KEY (emp_id) REFERENCES Employees(emp_id)
+);
+-- Departments
+INSERT INTO Departments (department_id, dept_name) VALUES
+(101, 'Sales'),
+(102, 'Marketing');
+
+-- Employees
+INSERT INTO Employees (emp_id, name, department_id) VALUES
+(1, 'Alice', 101),
+(2, 'Bob', 102),
+(3, 'Charlie', 101),
+(4, 'David', 102),
+(5, 'Eve', 101);
+
+-- Sales
+INSERT INTO Sales (sale_id, emp_id, sale_date, amount) VALUES
+(1, 1, '2025-08-01', 500),
+(2, 2, '2025-08-02', 700),
+(3, 1, '2025-08-03', 300),
+(4, 3, '2025-08-03', 400),
+(5, 4, '2025-08-04', 600),
+(6, 5, '2025-08-04', 200),
+(7, 5, '2025-08-05', 300);
+-- CTE to calculate total sales per employee with ranking
+WITH EmployeeSales AS (
+    SELECT 
+        e.emp_id,
+        e.name,
+        d.dept_name,
+        SUM(s.amount) AS total_sales,
+        RANK() OVER(PARTITION BY d.department_id ORDER BY SUM(s.amount) DESC) AS dept_rank
+    FROM Employees e
+    JOIN Departments d ON e.department_id = d.department_id
+    LEFT JOIN Sales s ON e.emp_id = s.emp_id
+    GROUP BY e.emp_id, e.name, d.dept_name, d.department_id
+)
+
+-- Select top 2 employees per department
+SELECT *
+FROM EmployeeSales
+WHERE dept_rank <= 2
+ORDER BY dept_name, dept_rank;
